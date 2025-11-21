@@ -280,14 +280,44 @@ const handleGeneratePdf = async () => {
 
   setIsGeneratingPdf(true);
 
+  // Small delay to let recent image src changes settle (helps mobile)
+  await new Promise((resolve) => setTimeout(resolve, 200));
+
   // Wait for all images inside the invoice to load (important for mobile)
+  const imgs = Array.from(invoicePreviewRef.current.querySelectorAll("img")) as HTMLImageElement[];
+
+  // Ensure crossOrigin attribute set for non-data images so html2canvas can use useCORS
+  imgs.forEach((img) => {
+    try {
+      if (img.src && !(img.src.startsWith('data:') || img.src.startsWith('blob:'))) {
+        img.crossOrigin = 'anonymous';
+      }
+    } catch (e) {
+      // ignore if not writable
+    }
+  });
+
   await Promise.all(
-    Array.from(invoicePreviewRef.current.querySelectorAll("img"))
-      .filter((img: HTMLImageElement) => !img.complete)
-      .map(
-        (img: HTMLImageElement) =>
-          new Promise((resolve) => (img.onload = resolve))
-      )
+    imgs.map((img) => {
+      if (img.complete && img.naturalWidth && img.naturalWidth > 0) return Promise.resolve();
+      return new Promise<void>((resolve) => {
+        let resolved = false;
+        const cleanup = () => {
+          img.removeEventListener('load', onLoad);
+          img.removeEventListener('error', onError);
+          if (!resolved) {
+            resolved = true;
+            resolve();
+          }
+        };
+        const onLoad = () => cleanup();
+        const onError = () => cleanup();
+        img.addEventListener('load', onLoad);
+        img.addEventListener('error', onError);
+        // safety timeout in case neither load nor error fires
+        setTimeout(() => cleanup(), 5000);
+      });
+    })
   );
 
   try {

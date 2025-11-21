@@ -51,7 +51,12 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoice, onInvoiceChan
                     <div className="mt-1 flex items-center space-x-4">
                         {invoice.companyLogo ? (
                             <div className="flex items-center space-x-2">
-                                 <img src={invoice.companyLogo} alt="Company Logo" className="h-16 w-16 object-contain rounded-md bg-gray-100 p-1" />
+                                 <img
+                                     src={invoice.companyLogo}
+                                     alt="Company Logo"
+                                     crossOrigin={invoice.companyLogo && !(invoice.companyLogo.startsWith('data:') || invoice.companyLogo.startsWith('blob:')) ? 'anonymous' : undefined}
+                                     className="h-16 w-16 object-contain rounded-md bg-gray-100 p-1"
+                                 />
                                  <button onClick={() => onInvoiceChange('companyLogo', undefined)} className="text-sm text-red-500 hover:text-red-700">Remove</button>
                             </div>
                         ) : (
@@ -64,7 +69,12 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoice, onInvoiceChan
                     <div className="mt-1 flex items-center space-x-4">
                         {invoice.signature ? (
                             <div className="flex items-center space-x-2">
-                                 <img src={invoice.signature} alt="E-Signature" className="h-16 w-16 object-contain rounded-md bg-gray-100 p-1" />
+                                 <img
+                                     src={invoice.signature}
+                                     alt="E-Signature"
+                                     crossOrigin={invoice.signature && !(invoice.signature.startsWith('data:') || invoice.signature.startsWith('blob:')) ? 'anonymous' : undefined}
+                                     className="h-16 w-16 object-contain rounded-md bg-gray-100 p-1"
+                                 />
                                  <button onClick={() => onInvoiceChange('signature', undefined)} className="text-sm text-red-500 hover:text-red-700">Remove</button>
                             </div>
                         ) : (

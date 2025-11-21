@@ -17,7 +17,7 @@ app.use(express.urlencoded({ extended: true }));
 // ✔ CORS FIX — allow your frontend in production
 app.use(cors({
   origin: [
-    "http://localhost:5173",
+    "http://localhost:3000",
     "https://billmitra.onrender.com"   // your live frontend
   ],
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],

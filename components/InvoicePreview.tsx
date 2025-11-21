@@ -61,7 +61,12 @@ export const InvoicePreview: React.FC<InvoicePreviewProps> = ({ invoice, templat
                 <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                     <div className="flex items-center gap-4">
                         {invoice.companyLogo && (
-                            <img src={invoice.companyLogo} alt="Company Logo" className="h-14 w-14 sm:h-16 sm:w-16 object-contain rounded-md bg-white p-1" />
+                            <img
+                                src={invoice.companyLogo}
+                                alt="Company Logo"
+                                crossOrigin={invoice.companyLogo && !(invoice.companyLogo.startsWith('data:') || invoice.companyLogo.startsWith('blob:')) ? 'anonymous' : undefined}
+                                className="h-14 w-14 sm:h-16 sm:w-16 object-contain rounded-md bg-white p-1"
+                            />
                         )}
                         <div>
                             <h1 className="text-2xl sm:text-3xl font-bold">{invoice.companyName}</h1>
@@ -134,7 +139,12 @@ export const InvoicePreview: React.FC<InvoicePreviewProps> = ({ invoice, templat
                 <div className="w-full md:w-1/2 lg:w-1/3 text-center">
                     {invoice.signature && (
                         <div className="mb-4">
-                            <img src={invoice.signature} alt="E-Signature" className="h-16 mx-auto object-contain" />
+                            <img
+                                src={invoice.signature}
+                                alt="E-Signature"
+                                crossOrigin={invoice.signature && !(invoice.signature.startsWith('data:') || invoice.signature.startsWith('blob:')) ? 'anonymous' : undefined}
+                                className="h-16 mx-auto object-contain"
+                            />
                         </div>
                     )}
                     <div className={`border-t-2 ${styles.borderColor} pt-2`}>
