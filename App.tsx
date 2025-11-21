@@ -280,59 +280,128 @@ const handleGeneratePdf = async () => {
 
   setIsGeneratingPdf(true);
 
-  // Small delay to let recent image src changes settle (helps mobile)
-  await new Promise((resolve) => setTimeout(resolve, 200));
-
-  // Wait for all images inside the invoice to load (important for mobile)
-  const imgs = Array.from(invoicePreviewRef.current.querySelectorAll("img")) as HTMLImageElement[];
-
-  // Ensure crossOrigin attribute set for non-data images so html2canvas can use useCORS
-  imgs.forEach((img) => {
-    try {
-      if (img.src && !(img.src.startsWith('data:') || img.src.startsWith('blob:'))) {
-        img.crossOrigin = 'anonymous';
-      }
-    } catch (e) {
-      // ignore if not writable
-    }
-  });
-
-  await Promise.all(
-    imgs.map((img) => {
-      if (img.complete && img.naturalWidth && img.naturalWidth > 0) return Promise.resolve();
-      return new Promise<void>((resolve) => {
-        let resolved = false;
-        const cleanup = () => {
-          img.removeEventListener('load', onLoad);
-          img.removeEventListener('error', onError);
-          if (!resolved) {
-            resolved = true;
-            resolve();
-          }
-        };
-        const onLoad = () => cleanup();
-        const onError = () => cleanup();
-        img.addEventListener('load', onLoad);
-        img.addEventListener('error', onError);
-        // safety timeout in case neither load nor error fires
-        setTimeout(() => cleanup(), 5000);
-      });
-    })
-  );
+  // We'll create an off-screen container to render the invoice for PDF capture
+  let offscreenContainer: HTMLDivElement | null = null;
 
   try {
-    // @ts-ignore
-    const { jsPDF } = window.jspdf;
+    const original = invoicePreviewRef.current as HTMLElement;
 
-    // Generate canvas with CORS enabled
-    const canvas = await html2canvas(invoicePreviewRef.current, {
-      scale: 2,
-      useCORS: true, // important for mobile / external images
-      allowTaint: false,
-      backgroundColor: null,
+    // --- 1. Create off-screen container and clone the invoice ---
+    offscreenContainer = document.createElement("div");
+    offscreenContainer.style.position = "fixed";
+    offscreenContainer.style.left = "-9999px";
+    offscreenContainer.style.top = "0";
+    // ~ A4 width at common screen dpi, tweak if needed
+    offscreenContainer.style.width = "794px";
+    offscreenContainer.style.padding = "16px";
+    offscreenContainer.style.backgroundColor = "#ffffff";
+    offscreenContainer.style.zIndex = "9999"; // just in case
+
+    // Clone invoice node (deep clone with children)
+    const clone = original.cloneNode(true) as HTMLElement;
+    offscreenContainer.appendChild(clone);
+    document.body.appendChild(offscreenContainer);
+
+    // Small delay to let layout and images settle (helps mobile)
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    await new Promise((resolve) =>
+      requestAnimationFrame(() => requestAnimationFrame(resolve))
+    );
+
+    // --- 2. Wait for all images inside the CLONE to load ---
+    const imgs = Array.from(
+      offscreenContainer.querySelectorAll("img")
+    ) as HTMLImageElement[];
+
+    imgs.forEach((img) => {
+      try {
+        if (
+          img.src &&
+          !(img.src.startsWith("data:") || img.src.startsWith("blob:"))
+        ) {
+          img.crossOrigin = "anonymous";
+        }
+      } catch (e) {
+        // ignore if not writable
+      }
     });
 
-    const imgData = canvas.toDataURL("image/png");
+    await Promise.all(
+      imgs.map((img) => {
+        if (img.complete && img.naturalWidth && img.naturalWidth > 0) {
+          return Promise.resolve();
+        }
+        return new Promise<void>((resolve) => {
+          let resolved = false;
+          const cleanup = () => {
+            img.removeEventListener("load", onLoad);
+            img.removeEventListener("error", onError);
+            if (!resolved) {
+              resolved = true;
+              resolve();
+            }
+          };
+          const onLoad = () => cleanup();
+          const onError = () => cleanup();
+          img.addEventListener("load", onLoad);
+          img.addEventListener("error", onError);
+          setTimeout(() => cleanup(), 5000); // safety timeout
+        });
+      })
+    );
+
+    // --- 3. Measure the off-screen container ---
+    const rect = offscreenContainer.getBoundingClientRect();
+    const elemWidth =
+      Math.round(rect.width) ||
+      offscreenContainer.scrollWidth ||
+      offscreenContainer.clientWidth ||
+      794; // fallback
+    const elemHeight =
+      Math.round(rect.height) ||
+      offscreenContainer.scrollHeight ||
+      offscreenContainer.clientHeight ||
+      1123; // fallback
+
+    if (!elemWidth || !elemHeight) {
+      console.error("Off-screen invoice still has 0 size:", {
+        rect,
+        scrollWidth: offscreenContainer.scrollWidth,
+        scrollHeight: offscreenContainer.scrollHeight,
+        clientWidth: offscreenContainer.clientWidth,
+        clientHeight: offscreenContainer.clientHeight,
+      });
+      return;
+    }
+
+    // --- 4. Render canvas with html2canvas ---
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(
+      navigator.userAgent
+    );
+
+    const canvas = await html2canvas(offscreenContainer, {
+      width: elemWidth,
+      height: elemHeight,
+      scale: isMobile ? (window.devicePixelRatio || 1) : 2,
+      useCORS: true,
+      allowTaint: false,
+      backgroundColor: "#ffffff",
+      scrollX: 0,
+      scrollY: 0,
+    });
+
+    if (!canvas.width || !canvas.height) {
+      console.error(
+        "Canvas has invalid size even in off-screen container:",
+        canvas.width,
+        canvas.height
+      );
+      return;
+    }
+
+    // --- 5. Generate PDF using JPEG image ---
+    // @ts-ignore
+    const { jsPDF } = window.jspdf;
 
     const pdf = new jsPDF({
       orientation: "p",
@@ -340,17 +409,56 @@ const handleGeneratePdf = async () => {
       format: "a4",
     });
 
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+    const pageWidth =
+      typeof pdf.internal.pageSize.getWidth === "function"
+        ? pdf.internal.pageSize.getWidth()
+        : (pdf.internal.pageSize as any).width;
+    const pageHeight =
+      typeof pdf.internal.pageSize.getHeight === "function"
+        ? pdf.internal.pageSize.getHeight()
+        : (pdf.internal.pageSize as any).height;
 
-    pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+    const imgData = canvas.toDataURL("image/jpeg", 0.95);
+
+    let imgWidth = Number(pageWidth);
+    let imgHeight = Number((canvas.height * imgWidth) / canvas.width);
+
+    if (imgHeight > pageHeight) {
+      const ratio = pageHeight / imgHeight;
+      imgHeight *= ratio;
+      imgWidth *= ratio;
+    }
+
+    if (
+      !isFinite(imgWidth) ||
+      !isFinite(imgHeight) ||
+      imgWidth <= 0 ||
+      imgHeight <= 0
+    ) {
+      console.error("Invalid image dimensions for pdf.addImage:", {
+        imgWidth,
+        imgHeight,
+        canvasWidth: canvas.width,
+        canvasHeight: canvas.height,
+        pageWidth,
+        pageHeight,
+      });
+      return;
+    }
+
+    pdf.addImage(imgData, "JPEG", 0, 0, imgWidth, imgHeight);
     pdf.save(`invoice-${Date.now()}.pdf`);
   } catch (error) {
     console.error("PDF generation error:", error);
   } finally {
+    // Clean up off-screen DOM
+    if (offscreenContainer && offscreenContainer.parentNode) {
+      offscreenContainer.parentNode.removeChild(offscreenContainer);
+    }
     setIsGeneratingPdf(false);
   }
 };
+
 
 
   const handleSendEmail = async (to: string, subject: string, body: string) => {
