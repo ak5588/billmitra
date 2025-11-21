@@ -16,6 +16,7 @@ import {
     LOCAL_STORAGE_KEY_COMPANY_NAME,
     SESSION_STORAGE_KEY_USER
 } from './constants';
+import html2canvas from 'html2canvas';
 
 
 type Template = 'modern' | 'clean' | 'professional' | 'creative' | 'minimalist';
@@ -274,27 +275,53 @@ const App: React.FC = () => {
     setMobileView('form');
   }, [savedInvoices.length, getInitialInvoiceState]);
 
-  const handleGeneratePdf = async () => {
-    if (!invoicePreviewRef.current) return;
-    setIsGeneratingPdf(true);
+const handleGeneratePdf = async () => {
+  if (!invoicePreviewRef.current) return;
+
+  setIsGeneratingPdf(true);
+
+  // Wait for all images inside the invoice to load (important for mobile)
+  await Promise.all(
+    Array.from(invoicePreviewRef.current.querySelectorAll("img"))
+      .filter((img: HTMLImageElement) => !img.complete)
+      .map(
+        (img: HTMLImageElement) =>
+          new Promise((resolve) => (img.onload = resolve))
+      )
+  );
+
+  try {
     // @ts-ignore
     const { jsPDF } = window.jspdf;
-    // @ts-ignore
-    const canvas = await html2canvas(invoicePreviewRef.current, { scale: 2, backgroundColor: null });
-    const imgData = canvas.toDataURL('image/png');
-    
+
+    // Generate canvas with CORS enabled
+    const canvas = await html2canvas(invoicePreviewRef.current, {
+      scale: 2,
+      useCORS: true, // important for mobile / external images
+      allowTaint: false,
+      backgroundColor: null,
+    });
+
+    const imgData = canvas.toDataURL("image/png");
+
     const pdf = new jsPDF({
-      orientation: 'p',
-      unit: 'mm',
-      format: 'a4',
+      orientation: "p",
+      unit: "mm",
+      format: "a4",
     });
 
     const pdfWidth = pdf.internal.pageSize.getWidth();
     const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-    pdf.save(`Invoice-${invoice.invoiceNumber}.pdf`);
+
+    pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+    pdf.save(`invoice-${Date.now()}.pdf`);
+  } catch (error) {
+    console.error("PDF generation error:", error);
+  } finally {
     setIsGeneratingPdf(false);
-  };
+  }
+};
+
 
   const handleSendEmail = async (to: string, subject: string, body: string) => {
     // A small delay to make the UX feel less jarring and allow UI to update
