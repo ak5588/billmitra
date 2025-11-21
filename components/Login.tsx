@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { LOCAL_STORAGE_KEY_TOKEN } from '../constants';
+import { API_URL } from "../api/config";
 
 interface User {
     id: string;
@@ -30,7 +31,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
     };
     const handleLogin = async () => {
         try {
-            const res = await fetch(`${window.location.origin.replace(/:\d+$/, ':5000')}/auth/login`, {
+            const res = await fetch(`${API_URL}/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password }),
@@ -57,7 +58,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
             return;
         }
         try {
-            const res = await fetch(`${window.location.origin.replace(/:\d+$/, ':5000')}/auth/signup`, {
+            const res = await fetch(`${API_URL}/auth/signup`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name: '', email, password }),

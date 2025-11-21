@@ -6,6 +6,7 @@ import { SavedInvoices } from './components/SavedInvoices';
 import { Login } from './components/Login';
 import { EmailModal } from './components/EmailModal';
 import { useLocalStorage } from './hooks/useLocalStorage';
+import { API_URL } from "./api/config";
 import { LOCAL_STORAGE_KEY_TOKEN } from './constants';
 import { 
     LOCAL_STORAGE_KEY_INVOICES, 
@@ -73,7 +74,7 @@ const App: React.FC = () => {
       if (!currentUser) return;
       try {
         const token = localStorage.getItem(LOCAL_STORAGE_KEY_TOKEN);
-        const res = await fetch(`${window.location.origin.replace(/:\d+$/, ':5000')}/invoice/all`, {
+        const res = await fetch(`${API_URL}/invoice/all`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (!res.ok) return;
@@ -152,7 +153,7 @@ const App: React.FC = () => {
         if (existingById) {
           const ok = window.confirm('This will overwrite the existing invoice. Do you want to save changes to the existing invoice?');
           if (ok) {
-            const res = await fetch(`${window.location.origin.replace(/:\d+$/, ':5000')}/invoice/${invoice.id}`, {
+            const res = await fetch(`${API_URL}/invoice/${invoice.id}`, {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
               body: JSON.stringify(invoice),
@@ -164,7 +165,7 @@ const App: React.FC = () => {
               return;
             }
             // refresh list
-            const listRes = await fetch(`${window.location.origin.replace(/:\d+$/, ':5000')}/invoice/all`, { headers: { Authorization: `Bearer ${token}` } });
+            const listRes = await fetch(`${API_URL}/invoice/all`, { headers: { Authorization: `Bearer ${token}` } });
             const list = await listRes.json();
             setSavedInvoices(list.map((inv: any) => ({ ...inv, id: inv._id })));
             alert('Invoice updated successfully!');
@@ -182,7 +183,7 @@ const App: React.FC = () => {
           const ok = window.confirm('An invoice with this number already exists. Do you want to overwrite that invoice?');
           if (ok) {
             // update that invoice
-            const res = await fetch(`${window.location.origin.replace(/:\d+$/, ':5000')}/invoice/${existingByNumber.id}`, {
+            const res = await fetch(`${API_URL}/invoice/${existingByNumber.id}`, {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
               body: JSON.stringify(invoice),
@@ -193,7 +194,7 @@ const App: React.FC = () => {
               alert(updated.message || 'Failed to update invoice');
               return;
             }
-            const listRes = await fetch(`${window.location.origin.replace(/:\d+$/, ':5000')}/invoice/all`, { headers: { Authorization: `Bearer ${token}` } });
+            const listRes = await fetch(`${API_URL}/invoice/all`, { headers: { Authorization: `Bearer ${token}` } });
             const list = await listRes.json();
             setSavedInvoices(list.map((inv: any) => ({ ...inv, id: inv._id })));
             alert('Invoice updated successfully!');
@@ -205,7 +206,7 @@ const App: React.FC = () => {
         }
 
         // Otherwise create a new invoice
-        const res = await fetch(`${window.location.origin.replace(/:\d+$/, ':5000')}/invoice/create`, {
+        const res = await fetch(`${API_URL}/invoice/create`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
           body: JSON.stringify(invoice),
@@ -217,7 +218,7 @@ const App: React.FC = () => {
           return;
         }
         // fetch updated list
-        const listRes2 = await fetch(`${window.location.origin.replace(/:\d+$/, ':5000')}/invoice/all`, { headers: { Authorization: `Bearer ${token}` } });
+        const listRes2 = await fetch(`${API_URL}/invoice/all`, { headers: { Authorization: `Bearer ${token}` } });
         const list2 = await listRes2.json();
         setSavedInvoices(list2.map((inv: any) => ({ ...inv, id: inv._id })));
         alert('Invoice saved successfully!');
@@ -243,7 +244,7 @@ const App: React.FC = () => {
       if (!window.confirm('Are you sure you want to delete this invoice?')) return;
       try {
         const token = localStorage.getItem(LOCAL_STORAGE_KEY_TOKEN);
-        const res = await fetch(`${window.location.origin.replace(/:\d+$/, ':5000')}/invoice/${id}`, {
+        const res = await fetch(`${API_URL}/invoice/${id}`, {
           method: 'DELETE',
           headers: { Authorization: `Bearer ${token}` }
         });
