@@ -11,6 +11,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
     <script>
       tailwind.config = {
         darkMode: 'class',
@@ -21,27 +22,32 @@
             },
             colors: {
               primary: {
-                DEFAULT: '#3b82f6', // blue-500
-                light: '#60a5fa', // blue-400
-                dark: '#2563eb', // blue-600
+                DEFAULT: '#3b82f6',
+                light: '#60a5fa',
+                dark: '#2563eb',
               },
-              secondary: '#f97316', // orange-500
+              secondary: '#f97316',
             },
           },
         },
       }
     </script>
-  <script type="importmap">
-{
-  "imports": {
-    "react/": "https://aistudiocdn.com/react@^19.2.0/",
-    "react": "https://aistudiocdn.com/react@^19.2.0",
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/"
-  }
-}
-</script>
-<link rel="stylesheet" href="src/index.css">
-</head>
+
+    <script type="importmap">
+    {
+      "imports": {
+        "react/": "https://aistudiocdn.com/react@^19.2.0/",
+        "react": "https://aistudiocdn.com/react@^19.2.0",
+        "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/"
+      }
+    }
+    </script>
+
+    <!-- ❌ Removed incorrect CSS link -->
+    <!-- Vite will automatically load index.css -->
+
+  </head>
+
   <body class="bg-gray-100 dark:bg-gray-900 transition-colors duration-300">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
