@@ -12,7 +12,14 @@ const app = express();
 app.use(express.json({ limit: '10mb' }));
 
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:3000';
-app.use(cors({ origin: CLIENT_URL }));
+app.use(cors({
+  origin: [
+    "http://localhost:5173",
+    "https://billmitra.onrender.com/"
+  ],
+  credentials: true
+}));
+
 
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/billmitra';
 connectDB(MONGO_URI).catch(err => console.error(err));
