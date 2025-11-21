@@ -9,30 +9,39 @@ import path from 'path';
 dotenv.config();
 
 const app = express();
-app.use(express.json({ limit: '10mb' }));
 
-const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:3000';
+// ✔ Enable JSON & URL encoded body parsing (required for signup)
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true }));
+
+// ✔ CORS FIX — allow your frontend in production
 app.use(cors({
   origin: [
     "http://localhost:5173",
-    "https://billmitra.onrender.com/"
+    "https://billmitra.onrender.com"   // your live frontend
   ],
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true
 }));
 
-
+// ✔ Connect to MongoDB Atlas
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/billmitra';
-connectDB(MONGO_URI).catch(err => console.error(err));
+connectDB(MONGO_URI).catch(err => console.error("MongoDB connection error:", err));
 
+// ✔ Routes
 app.use('/auth', authRoutes);
 app.use('/invoice', invoiceRoutes);
 
-// Serve generated uploads (PDFs)
+// ✔ Serve uploaded PDFs
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
-app.get('/', (req, res) => res.json({ message: 'BillMitra API' }));
+// ✔ Default test route
+app.get('/', (req, res) => res.json({ message: 'BillMitra API Running' }));
 
-const PORT = process.env.PORT || 5000;
+// ✔ Correct PORT setup for Render
+const PORT = process.env.PORT || 10000;
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
